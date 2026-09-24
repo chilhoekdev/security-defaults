@@ -1,0 +1,57 @@
+name: Dependency Audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # re-check daily even with no code changes, since new CVEs can be
+    # published against dependencies you already have installed
+    - cron: '0 6 * * *'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Install (frozen lockfile, scripts ignored)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Audit dependencies
+        run: pnpm audit --audit-level=high
+
+      - name: Verify lockfile signatures/provenance
+        run: pnpm audit signatures
+
+  osv-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # to upload results to GitHub Code Scanning
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run OSV-Scanner
+        uses: google/osv-scanner-action/osv-scanner-action@v2
+        with:
+          scan-args: |-
+            --lockfile=pnpm-lock.yaml
+            --format=sarif
+            --output=results.sarif
+        continue-on-error: true
+
+      - name: Upload results to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: results.sarif
