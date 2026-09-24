@@ -13,7 +13,7 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -39,7 +39,7 @@ jobs:
       contents: read
       security-events: write # to upload results to GitHub Code Scanning
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Run OSV-Scanner
         uses: google/osv-scanner-action/osv-scanner-action@v2
